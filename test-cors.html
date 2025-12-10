@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CORS Test - Hotel Booking System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #0C4A6E;
+            margin-bottom: 10px;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        button {
+            background: #0C4A6E;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0a3b57;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            border: 1px solid #dee2e6;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 CORS Test - Hotel Booking System</h1>
+        <p>Test if the backend API accepts requests from this origin</p>
+
+        <div class="info status">
+            <strong>Current Origin:</strong> <span id="currentOrigin"></span>
+        </div>
+
+        <div class="test-section">
+            <h3>API Configuration</h3>
+            <label>Backend API URL:</label>
+            <input type="text" id="apiUrl" value="http://localhost:3000" placeholder="http://localhost:3000">
+        </div>
+
+        <div class="test-section">
+            <h3>Test 1: CORS Test Endpoint</h3>
+            <button onclick="testCORS()">Test CORS</button>
+            <div id="corsResult"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Test 2: Get All Rooms</h3>
+            <button onclick="testRooms()">Test Rooms API</button>
+            <div id="roomsResult"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Test 3: Login (Auth)</h3>
+            <input type="email" id="email" placeholder="Email" value="admin@hotel.com">
+            <input type="password" id="password" placeholder="Password" value="admin123">
+            <button onclick="testLogin()">Test Login</button>
+            <div id="loginResult"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Test 4: Update Room (Requires Auth)</h3>
+            <input type="text" id="token" placeholder="JWT Token (from login test)">
+            <input type="number" id="roomId" placeholder="Room ID" value="1">
+            <button onclick="testUpdateRoom()">Test Update Room</button>
+            <div id="updateResult"></div>
+        </div>
+    </div>
+
+    <script>
+        // Display current origin
+        document.getElementById('currentOrigin').textContent = window.location.origin;
+
+        function getApiUrl() {
+            return document.getElementById('apiUrl').value;
+        }
+
+        function showResult(elementId, success, message, data = null) {
+            const element = document.getElementById(elementId);
+            const statusClass = success ? 'success' : 'error';
+            let html = `<div class="status ${statusClass}">${message}</div>`;
+
+            if (data) {
+                html += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+            }
+
+            element.innerHTML = html;
+        }
+
+        async function testCORS() {
+            const resultDiv = document.getElementById('corsResult');
+            resultDiv.innerHTML = '<div class="info status">Testing CORS...</div>';
+
+            try {
+                const response = await fetch(`${getApiUrl()}/api/cors-test`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showResult('corsResult', true, '✅ CORS is working!', data);
+                } else {
+                    showResult('corsResult', false, '❌ API returned error', data);
+                }
+            } catch (error) {
+                showResult('corsResult', false, `❌ CORS Error: ${error.message}`, {
+                    error: error.toString(),
+                    hint: 'Check if backend server is running and CORS is configured correctly'
+                });
+            }
+        }
+
+        async function testRooms() {
+            const resultDiv = document.getElementById('roomsResult');
+            resultDiv.innerHTML = '<div class="info status">Fetching rooms...</div>';
+
+            try {
+                const response = await fetch(`${getApiUrl()}/api/rooms`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showResult('roomsResult', true, `✅ Found ${data.data.length} rooms`, {
+                        count: data.data.length,
+                        sample: data.data.slice(0, 3)
+                    });
+                } else {
+                    showResult('roomsResult', false, '❌ Failed to fetch rooms', data);
+                }
+            } catch (error) {
+                showResult('roomsResult', false, `❌ Error: ${error.message}`, {
+                    error: error.toString()
+                });
+            }
+        }
+
+        async function testLogin() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const resultDiv = document.getElementById('loginResult');
+
+            if (!email || !password) {
+                showResult('loginResult', false, '❌ Please enter email and password');
+                return;
+            }
+
+            resultDiv.innerHTML = '<div class="info status">Logging in...</div>';
+
+            try {
+                const response = await fetch(`${getApiUrl()}/api/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    // Auto-fill token for next test
+                    document.getElementById('token').value = data.data.token;
+                    showResult('loginResult', true, '✅ Login successful! Token auto-filled below.', {
+                        user: data.data.user,
+                        token: data.data.token.substring(0, 50) + '...'
+                    });
+                } else {
+                    showResult('loginResult', false, '❌ Login failed', data);
+                }
+            } catch (error) {
+                showResult('loginResult', false, `❌ Error: ${error.message}`, {
+                    error: error.toString()
+                });
+            }
+        }
+
+        async function testUpdateRoom() {
+            const token = document.getElementById('token').value;
+            const roomId = document.getElementById('roomId').value;
+            const resultDiv = document.getElementById('updateResult');
+
+            if (!token) {
+                showResult('updateResult', false, '❌ Please login first to get a token');
+                return;
+            }
+
+            if (!roomId) {
+                showResult('updateResult', false, '❌ Please enter a room ID');
+                return;
+            }
+
+            resultDiv.innerHTML = '<div class="info status">Updating room...</div>';
+
+            try {
+                const response = await fetch(`${getApiUrl()}/api/admin/rooms/${roomId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        room_type: 'Deluxe (Updated via CORS test)'
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    showResult('updateResult', true, '✅ Room updated successfully!', data);
+                } else {
+                    showResult('updateResult', false, `❌ Update failed (${response.status})`, data);
+                }
+            } catch (error) {
+                showResult('updateResult', false, `❌ Error: ${error.message}`, {
+                    error: error.toString()
+                });
+            }
+        }
+
+        // Auto-test CORS on page load
+        window.addEventListener('load', () => {
+            setTimeout(testCORS, 500);
+        });
+    </script>
+</body>
+</html>
